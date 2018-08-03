@@ -55,6 +55,9 @@ public class Index {
 		 * TODO: Your code here
 		 *	 
 		 */
+		postingDict.put(posting-getTermId(), new Pair<Long, Integer>(fc.position(), posting.getList().size()));
+		index.writePosting(fc, posting);
+
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -134,7 +137,16 @@ public class Index {
 						 * TODO: Your code here
 						 *       For each term, build up a list of
 						 *       documents in which the term occurs
-						 */
+						 */ 
+						int tId;
+						if(!termDict.containsKey(token)){
+							tId = ++wordIdCounter;
+							termDict.put(token, termId)
+						}else{
+							tId=termDict.get(token);
+						}
+
+						pairs.add(new Pair(tId, docId)
 					}
 				}
 				reader.close();
