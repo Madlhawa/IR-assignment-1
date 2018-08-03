@@ -18,6 +18,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.LinkedList;
 
+//class start
 public class Index {
 
 	// Term id -> (position in index file, doc frequency) dictionary
@@ -50,17 +51,18 @@ public class Index {
 	 * 
 	 * */
 	private static void writePosting(FileChannel fc, PostingList posting)
-			throws IOException {
+			throws Throwable {
 		/*
 		 * TODO: Your code here
 		 *	 
 		 */
-		postingDict.put(posting-getTermId(), new Pair<Long, Integer>(fc.position(), posting.getList().size()));
-		index.writePosting(fc, posting);
-
+		if (blockQueue.isEmpty()) {
+            postingDict.put(posting.getTermId(), new Pair<>(fc.position(), posting.getList().size()));
+        }
+        index.writePosting(fc, posting);
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Throwable {
 		/* Parse command line */
 		if (args.length != 3) {
 			System.err
@@ -122,11 +124,18 @@ public class Index {
 			File blockDir = new File(root, block.getName());
 			File[] filelist = blockDir.listFiles(filter);
 			
+			TreeMap<Integer, TreeSet<Integer>> blockMap = new TreeMap<Integer, TreeSet<Integer>>();
+			
 			/* For each file */
 			for (File file : filelist) {
-				++totalFileCount;
-				String fileName = block.getName() + "/" + file.getName();
-				docDict.put(fileName, docIdCounter++);
+				if (file.isHidden()) {
+                    continue; // skip hidden files. break is probably wrong, I'd continue.
+                }
+                ++totalFileCount;
+                String fileName = block.getName() + "/" + file.getName();
+
+                int docId = ++docIdCounter;
+                docDict.put(fileName, docId);
 				
 				BufferedReader reader = new BufferedReader(new FileReader(file));
 				String line;
@@ -137,16 +146,15 @@ public class Index {
 						 * TODO: Your code here
 						 *       For each term, build up a list of
 						 *       documents in which the term occurs
-						 */ 
-						int tId;
-						if(!termDict.containsKey(token)){
-							tId = ++wordIdCounter;
-							termDict.put(token, termId)
-						}else{
-							tId=termDict.get(token);
-						}
-
-						pairs.add(new Pair(tId, docId)
+						 */
+						if (!termDict.containsKey(token)) {
+                            termDict.put(token, wordIdCounter++);
+                        }
+                        int termId = termDict.get(token);
+                        if (!blockMap.containsKey(termId)) {
+                            blockMap.put(termId, new TreeSet<Integer>());
+                        }
+                        blockMap.get(termId).add(docId);
 					}
 				}
 				reader.close();
@@ -196,6 +204,26 @@ public class Index {
 			 *       the two blocks (based on term ID, perhaps?).
 			 *       
 			 */
+			FileChannel bfc1 = bf1.getChannel();
+            FileChannel bfc2 = bf2.getChannel();
+            FileChannel mfc = mf.getChannel();
+            PostingList p1, p2;
+            
+			do {
+                p1 = index.readPosting(bfc1);
+                p2 = index.readPosting(bfc2);
+                while (p1 != null && (p2 == null || p1.getTermId() < p2.getTermId())) {
+                    writePosting(mfc, p1);
+                    p1 = index.readPosting(bfc1);
+                }
+                while (p2 != null && (p1 == null || p2.getTermId() < p1.getTermId())) {
+                    writePosting(mfc, p2);
+                    p2 = index.readPosting(bfc2);
+                }
+                if (p1 != null && p2 != null && p1.getTermId() == p2.getTermId()) {
+                    //How to merge PostingList p = ;
+                }
+            } while (p1 != null || p2 != null);
 			
 			bf1.close();
 			bf2.close();

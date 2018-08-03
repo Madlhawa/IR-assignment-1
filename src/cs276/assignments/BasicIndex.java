@@ -1,9 +1,10 @@
 package cs276.assignments;
 
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.nio.ByteBuffer;
 import java.io.IOException;
-import java.lang.Exception;
 
 public class BasicIndex implements BaseIndex {
 	private static final int INT_SIZE = 4;
@@ -50,8 +51,17 @@ public class BasicIndex implements BaseIndex {
 		 * Hint: This differs from reading in termId/freq only 
 		 * in the number of ints to be read in.
 		 */		
+		List<Integer> docIds = new ArrayList<Integer>(freq);
+        fc.read(buffer);
+
+        buffer.flip();
+        for (int i = 0; i < freq; i++) {
+            docIds.add(buffer.getInt());
+        }
+
+        PostingList p = new PostingList(termId, docIds);
+        return p;
 		
-		return null;
 	}
 
 	@Override

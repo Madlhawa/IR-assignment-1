@@ -30,11 +30,12 @@ public class Query {
 	 * posting list and read it back.
 	 * */
 	private static PostingList readPosting(FileChannel fc, int termId)
-			throws IOException {
+			throws Throwable {
 		/*
 		 * TODO: Your code here
 		 */
-		return null;
+		if (!posDict.containsKey(termId)) return null;
+        return index.readPosting(fc.position(posDict.get(termId)));
 	}
 
 	public static void main(String[] args) throws IOException {
